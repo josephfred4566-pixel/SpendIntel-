@@ -1,0 +1,6 @@
+{
+  "name": "SpendIntel",
+  "description": "SpendIntel — Autonomous Financial Intelligence & Spend Governance. Real-time expense management, corporate card tracking, and GAAP ledger reconciliation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
