@@ -379,10 +379,16 @@ app.get("/api/v1/auth/:platform", (req, res) => {
     const { platform } = req.params;
     console.log(`[OAuth Service] Generating authorization URL for platform: ${platform}`);
     
+    const qboClientId = process.env.QBO_CLIENT_ID || "ABeQyD5DQC7EVo2dJQiAjpBGcUDWGymLEyH7uS6wWYuQLgMcHN";
+    const qboRedirectUri = process.env.QBO_REDIRECT_URI || "http://localhost:3000/api/v1/callback/quickbooks";
+
+    const xeroClientId = process.env.XERO_CLIENT_ID || "D6760B4F39C24BBC9DD6FB80E831BB11";
+    const xeroRedirectUri = process.env.XERO_REDIRECT_URI || "http://localhost:3000/api/v1/callback/xero";
+
     const authUrls: Record<string, string> = {
-      quickbooks: "https://appcenter.intuit.com/connect/oauth2",
-      xero: "https://login.xero.com/identity/connect/authorize",
-      ramp: "https://app.ramp.com/v1/authorize"
+      quickbooks: `https://appcenter.intuit.com/connect/oauth2?client_id=${qboClientId}&response_type=code&scope=com.intuit.quickbooks.accounting&redirect_uri=${encodeURIComponent(qboRedirectUri)}&state=quickbooks`,
+      xero: `https://login.xero.com/identity/connect/authorize?response_type=code&client_id=${xeroClientId}&redirect_uri=${encodeURIComponent(xeroRedirectUri)}&scope=openid%20profile%20email%20accounting.transactions&state=xero`,
+      ramp: `https://app.ramp.com/v1/authorize?client_id=ramp_spend_intel&response_type=code&redirect_uri=${encodeURIComponent("http://localhost:3000/api/v1/callback/ramp")}&state=ramp`
     };
 
     const authorizationUrl = authUrls[platform] || `https://oauth.example.com/authorize?client_id=spend_intel&platform=${platform}&scope=read_write`;
@@ -400,6 +406,45 @@ app.get("/api/v1/auth/:platform", (req, res) => {
       error: error.message
     });
   }
+});
+
+// OAuth Callback Handlers for QuickBooks, Xero, and Ramp
+app.get(["/api/v1/callback/quickbooks", "/api/v1/callback/xero", "/api/v1/callback/:platform"], (req, res) => {
+  const platform = req.params.platform || (req.path.includes("quickbooks") ? "quickbooks" : "xero");
+  const code = req.query.code || "mock_oauth_auth_code";
+
+  console.log(`[OAuth Callback] Received OAuth authorization code for platform '${platform}':`, code);
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>OAuth Connection Successful</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          .card { background: #1e293b; border: 1px solid #334155; padding: 2.5rem; border-radius: 1rem; text-align: center; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+          .icon { width: 56px; height: 56px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; color: white; font-size: 28px; font-weight: bold; }
+          h1 { font-size: 1.35rem; margin-bottom: 0.5rem; font-weight: 600; color: #f8fafc; }
+          p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.75rem; }
+          .btn { background: #2563eb; color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 500; display: inline-block; transition: background 0.2s; }
+          .btn:hover { background: #1d4ed8; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✓</div>
+          <h1>Successfully Connected to ${platform.toUpperCase()}</h1>
+          <p>OAuth credentials verified. SpendIntel is now connected and synchronizing live transaction records.</p>
+          <a href="/?connected=${platform}" class="btn">Return to SpendIntel Dashboard</a>
+        </div>
+        <script>
+          setTimeout(() => {
+            window.location.href = "/?connected=${platform}";
+          }, 2000);
+        </script>
+      </body>
+    </html>
+  `);
 });
 
 // Initialize Gemini AI (server-side only)

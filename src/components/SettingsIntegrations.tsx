@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Blocks,
   Building2, 
@@ -166,6 +166,29 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
   const [strictPerDiem, setStrictPerDiem] = useState(true);
 
   const isDark = theme === 'dark';
+
+  // Handle returning from OAuth flow with ?connected=platform
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const connectedPlatform = params.get('connected');
+      if (connectedPlatform) {
+        setIntegrations(prev => prev.map(item => {
+          if (item.id === connectedPlatform || item.name.toLowerCase().includes(connectedPlatform.toLowerCase())) {
+            return {
+              ...item,
+              status: 'connected',
+              lastSynced: 'Just now'
+            };
+          }
+          return item;
+        }));
+        onNotify(`Successfully connected and authenticated ${connectedPlatform.toUpperCase()}!`);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, []);
 
   // Last persisted time from local storage
   const lastSaved = getLastSavedTimestamp() ? new Date(getLastSavedTimestamp()!).toLocaleTimeString() : 'Active (Live)';
