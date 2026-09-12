@@ -36,8 +36,15 @@ export async function initiateOAuth(platform: string) {
                 
                 if (data.authorizationUrl) {
                     console.log(`[OAuth Service] Authorization URL received for ${platform}:`, data.authorizationUrl);
-                    // Redirect user to QuickBooks, Xero, Ramp login page
-                    window.location.href = data.authorizationUrl;
+                    try {
+                        if (data.authorizationUrl.startsWith('http://') || data.authorizationUrl.startsWith('https://')) {
+                            window.open(data.authorizationUrl, '_blank', 'noopener,noreferrer');
+                        } else {
+                            window.location.href = data.authorizationUrl;
+                        }
+                    } catch (navError) {
+                        console.warn('[OAuth Service] Cross-origin frame navigation prevented:', navError);
+                    }
                     return;
                 }
             }
@@ -48,11 +55,10 @@ export async function initiateOAuth(platform: string) {
     }
 
     console.error('OAuth initiation failed:', lastError);
-    alert('Could not reach backend auth server.');
 }
 
 /**
- * Sends transaction data to the running backend server (e.g., Termux / Local express server).
+ * Sends transaction data to the running backend server.
  * Handles HTTPS mixed-content restrictions gracefully by trying relative /api/v1/sync endpoint.
  */
 export async function syncDataToServer() {
@@ -103,7 +109,7 @@ export async function syncDataToServer() {
 }
 
 /**
- * Triggers platform connector sync for quickbooks, xero, or ramp.
+ * Triggers platform connector sync for quickbooks or xero.
  */
 export async function triggerAppSync(platform: string) {
     const session = getStoredAuthSession();
@@ -112,8 +118,7 @@ export async function triggerAppSync(platform: string) {
 
     const endpoints: Record<string, string> = {
         quickbooks: 'http://localhost:3000/api/v1/sync/quickbooks',
-        xero: 'http://localhost:3000/api/v1/sync/xero',
-        ramp: 'http://localhost:3000/api/v1/sync/ramp'
+        xero: 'http://localhost:3000/api/v1/sync/xero'
     };
 
     const mockExternalData = [

@@ -14,6 +14,7 @@ import {
 } from './types';
 import { Header } from './components/Header';
 import { MetricCards } from './components/MetricCards';
+import { ExecutiveComplianceSummary } from './components/ExecutiveComplianceSummary';
 import { TopSearchBar } from './components/TopSearchBar';
 import { ChartArea } from './components/ChartArea';
 import { CategoryBreakdown } from './components/CategoryBreakdown';
@@ -30,8 +31,10 @@ import { BottomNavBar } from './components/BottomNavBar';
 import { AuthView } from './components/AuthView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileEditModal } from './components/ProfileEditModal';
+import { DailySummaryToast } from './components/DailySummaryToast';
 import { syncDataToServer, triggerAppSync } from './utils/syncService';
 import { evaluatePolicyRules, auditAllExpenses } from './utils/policyEngine';
+import { suggestCategoryForMerchant, generateMockUncategorizedExpenses } from './utils/ai';
 import { getCurrencyInfo, formatMoney } from './utils/currencies';
 import { 
   getStoredAuthSession, 
@@ -47,6 +50,8 @@ import {
   saveCurrency, 
   loadCategories,
   saveCategories,
+  loadDepartments,
+  saveDepartments,
   loadActivityLogs, 
   saveActivityLogs, 
   appendActivityLog, 
@@ -58,7 +63,7 @@ import {
   resetAllDataToDefaults, 
   importStateFromJSON 
 } from './utils/storage';
-import { CheckCircle2, Sparkles, Building2, Layers, Globe, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Sparkles, Building2, Layers, Globe, ShieldCheck, Blocks } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveNavTab>('home');
@@ -81,6 +86,7 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>(() => loadExpenses());
   const [activeCurrencyCode, setActiveCurrencyCode] = useState<string>(() => loadCurrency());
   const [categories, setCategories] = useState<CategoryDefinition[]>(() => loadCategories());
+  const [departments, setDepartments] = useState(() => loadDepartments());
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>(() => loadActivityLogs());
   const [companyProfile, setCompanyProfile] = useState<CompanyProfileData>(() => loadCompanyProfile());
 
@@ -114,12 +120,30 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | 'All'>('All');
   const [selectedDepartment, setSelectedDepartment] = useState<Department | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<ExpenseStatus | 'All' | 'Violations'>('All');
   const [isNewExpenseOpen, setIsNewExpenseOpen] = useState(false);
   const [viewingReceiptExpense, setViewingReceiptExpense] = useState<Expense | null>(null);
   const [inspectingAuditExpense, setInspectingAuditExpense] = useState<Expense | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Daily Spending summary toast state & automatic trigger on first open each day
+  const [isDailySummaryToastOpen, setIsDailySummaryToastOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (session) {
+      const todayStr = new Date().toLocaleDateString('en-US'); // unique per local calendar day
+      const lastToastDate = localStorage.getItem('spendIntel_lastToastDate');
+      if (lastToastDate !== todayStr) {
+        const timer = setTimeout(() => {
+          setIsDailySummaryToastOpen(true);
+          localStorage.setItem('spendIntel_lastToastDate', todayStr);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [session]);
 
   // Synchronize expenses changes to durable storage and global window.mockTransactions
   useEffect(() => {
@@ -128,6 +152,11 @@ export default function App() {
       window.mockTransactions = expenses;
     }
   }, [expenses]);
+
+  // Synchronize departments changes to storage
+  useEffect(() => {
+    saveDepartments(departments);
+  }, [departments]);
 
   // Synchronize company type to localStorage spendIntel_companyType
   useEffect(() => {
@@ -402,6 +431,70 @@ export default function App() {
     });
 
     showToast(`Successfully bulk-approved ${ids.length} compliant transaction${ids.length === 1 ? '' : 's'} with 1-click execution.`);
+  };
+
+  // Automated AI categorization trigger
+  const handleAutoCategorize = (): boolean => {
+    const uncatCount = expenses.filter(e => e.category === 'Other').length;
+    if (uncatCount === 0) {
+      return false;
+    }
+
+    const updated = expenses.map(e => {
+      if (e.category === 'Other') {
+        const suggested = suggestCategoryForMerchant(e.merchant);
+        if (suggested !== 'Other') {
+          const updatedExp = { ...e, category: suggested };
+          const violations = evaluatePolicyRules(updatedExp);
+          return {
+            ...updatedExp,
+            violations,
+            status: violations.length > 0 ? 'Flagged' : (e.status === 'Flagged' ? 'Pending' : e.status),
+          };
+        }
+      }
+      return e;
+    });
+
+    setExpenses(updated);
+    saveExpenses(updated);
+
+    appendActivityLog({
+      actionType: 'INTEGRATION_SYNC',
+      actor: 'SpendIntel Neural Agent',
+      title: 'Automated Expense Categorization Executed',
+      details: `Analyzed and resolved ${uncatCount} uncategorized transactions. Corrected standard general ledger categories.`,
+      severity: 'success',
+    });
+
+    return true;
+  };
+
+  // Seed demo uncategorized expenses to test the mock-AI categorization engine
+  const handleInjectUncategorizedDemo = () => {
+    const mocks = generateMockUncategorizedExpenses();
+    const auditedMocks = mocks.map(m => {
+      const violations = evaluatePolicyRules(m);
+      return {
+        ...m,
+        violations,
+        status: violations.length > 0 ? 'Flagged' : m.status
+      };
+    });
+
+    const updated = [...auditedMocks, ...expenses];
+    setExpenses(updated);
+    saveExpenses(updated);
+
+    appendActivityLog({
+      actionType: 'EXPENSE_CREATED',
+      actor: 'System Demonstration',
+      title: 'Uncategorized Demo Expenses Generated',
+      details: 'Injected 3 new "Other" category sample transactions (AWS, GitHub, Starbucks) to test AI auto-categorization.',
+      severity: 'normal',
+    });
+
+    showToast('Injected 3 uncategorized demo expenses! Click "Auto-Categorize" in the table toolbar to test.');
   };
 
   // Run or re-run automated policy checks across all expenses
@@ -683,11 +776,32 @@ export default function App() {
         onOpenProfileEdit={() => setIsProfileEditOpen(true)}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        onOpenDailySummary={() => setIsDailySummaryToastOpen(true)}
       />
 
       {/* Main Content Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 flex-1 w-full pb-24 md:pb-8">
         
+        {/* Daily Spending summary toast */}
+        <DailySummaryToast
+          isOpen={isDailySummaryToastOpen}
+          onClose={() => setIsDailySummaryToastOpen(false)}
+          expenses={expenses}
+          currencyCode={activeCurrencyCode}
+          userName={session.user.name}
+          companyName={session.user.companyName}
+          onViewPending={() => {
+            setStatusFilter('Pending');
+            const el = document.getElementById('transaction-feed');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          onViewFlagged={() => {
+            setStatusFilter('Violations');
+            const el = document.getElementById('transaction-feed');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+
         {/* Toast Notification */}
         {toastMessage && (
           <div className="bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg flex items-center justify-between border border-transparent dark:border-slate-700 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -704,51 +818,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Company Tier Active Session Banner */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-2xs flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-colors duration-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/80 dark:border-emerald-800">
-              {session.user.companyType === 'Corporate' && <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
-              {session.user.companyType === 'Enterprise' && <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-              {session.user.companyType === 'Small Business' && <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{session.user.companyName}</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {session.user.companyType} Edition
-                </span>
-                <span className="hidden sm:inline-block text-[11px] text-slate-500 dark:text-slate-400">
-                  • Logged in as <strong className="text-slate-700 dark:text-slate-300">{session.user.name}</strong> ({session.user.role})
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {session.user.companyType === 'Small Business' && 'Optimized for receipt OCR, automated tax categories, and QuickBooks ledger synchronization.'}
-                {session.user.companyType === 'Enterprise' && 'Multi-department budget controls, policy exception waivers, and ERP ledger feeds active.'}
-                {session.user.companyType === 'Corporate' && 'Global sovereign currency consolidation, real-time Ramp card webhooks, and SOC2 verifiable audit trail.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 shrink-0 self-end md:self-auto">
-            <button
-              type="button"
-              id="dashboard-replay-tour-btn"
-              onClick={handleReplayTour}
-              className="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" />
-              <span>Tour</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-medium px-2 py-1 transition-colors cursor-pointer"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
 
         {/* View Switching: Home Dashboard vs Settings & Accounting Integrations */}
         {activeTab === 'home' ? (
@@ -766,6 +835,26 @@ export default function App() {
               expenses={expenses} 
               currencyCode={activeCurrencyCode}
               onOpenCurrencySelector={() => setIsCurrencyModalOpen(true)}
+            />
+
+            {/* Executive Compliance Summary Visual Snapshot */}
+            <ExecutiveComplianceSummary
+              expenses={expenses}
+              currencyCode={activeCurrencyCode}
+              onFilterFlaggedOnly={() => {
+                setStatusFilter('Flagged');
+                setSelectedDepartment('All');
+                setSelectedCategory('All');
+                const tableEl = document.getElementById('transaction-feed');
+                if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onInspectHighRisk={() => {
+                setStatusFilter('All');
+                setSelectedDepartment('All');
+                setSelectedCategory('All');
+                const tableEl = document.getElementById('transaction-feed');
+                if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth' });
+              }}
             />
 
             {/* 2. Audit Alerts Card & Category Breakdown Grid */}
@@ -804,6 +893,8 @@ export default function App() {
               currencyCode={activeCurrencyCode}
               activeDepartment={selectedDepartment}
               onSelectDepartment={setSelectedDepartment}
+              departments={departments}
+              onDepartmentsChange={setDepartments}
             />
 
             {/* 4. Monthly Spending Trend Chart */}
@@ -830,6 +921,10 @@ export default function App() {
                 onSearchChange={setSearchQuery}
                 onLogExpenseClick={() => setIsNewExpenseOpen(true)}
                 onOpenCurrencyModal={() => setIsCurrencyModalOpen(true)}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+                onAutoCategorize={handleAutoCategorize}
+                onInjectUncategorizedDemo={handleInjectUncategorizedDemo}
               />
             </div>
           </div>
@@ -893,6 +988,7 @@ export default function App() {
       <OnboardingModal
         isOpen={isOnboardingOpen}
         user={session.user}
+        expenses={expenses}
         onComplete={handleOnboardingComplete}
         onSkip={handleOnboardingSkip}
         activeCurrencyCode={activeCurrencyCode}

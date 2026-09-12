@@ -28,50 +28,6 @@ interface ProfileEditModalProps {
   onNotify?: (message: string) => void;
 }
 
-// Curated high quality executive avatar presets
-const PRESET_AVATARS = [
-  {
-    id: 'preset-1',
-    label: 'Executive 1',
-    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-2',
-    label: 'Executive 2',
-    url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-3',
-    label: 'Executive 3',
-    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-4',
-    label: 'Executive 4',
-    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-5',
-    label: 'Executive 5',
-    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-6',
-    label: 'Executive 6',
-    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-7',
-    label: 'Executive 7',
-    url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-8',
-    label: 'Executive 8',
-    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80',
-  },
-];
-
 const AVAILABLE_ROLES: UserRole[] = [
   'Financial Controller',
   'VP of Finance',
@@ -117,7 +73,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAvatarTab, setActiveAvatarTab] = useState<'upload' | 'presets' | 'url'>('presets');
+  const [activeAvatarTab, setActiveAvatarTab] = useState<'upload' | 'url'>('upload');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -274,8 +230,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
             <div className="text-right shrink-0">
               <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                {companyType === 'Corporate' && <Globe className="w-3.5 h-3.5 mr-1.5 text-indigo-600 dark:text-indigo-400" />}
-                {companyType === 'Enterprise' && <Layers className="w-3.5 h-3.5 mr-1.5 text-blue-600 dark:text-blue-400" />}
+                {companyType === 'Corporate' && <Globe className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400" />}
+                {companyType === 'Enterprise' && <Layers className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400" />}
                 {companyType === 'Small Business' && <Building2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400" />}
                 {companyType} Edition
               </span>
@@ -291,7 +247,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   Profile Photo & Avatar Options
                 </label>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Choose an executive portrait preset, upload your own photo, or enter an image URL.
+                  Upload your own photo or enter an image URL.
                 </p>
               </div>
 
@@ -309,17 +265,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
             {/* Avatar Navigation Tabs */}
             <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-              <button
-                type="button"
-                onClick={() => setActiveAvatarTab('presets')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                  activeAvatarTab === 'presets'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700'
-                }`}
-              >
-                Executive Presets
-              </button>
               <button
                 type="button"
                 onClick={() => setActiveAvatarTab('upload')}
@@ -343,40 +288,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 Image URL
               </button>
             </div>
-
-            {/* Tab 1: Presets Gallery */}
-            {activeAvatarTab === 'presets' && (
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 pt-1">
-                {PRESET_AVATARS.map((preset) => {
-                  const isSelected = avatarUrl === preset.url;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setAvatarUrl(preset.url)}
-                      className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all cursor-pointer group ${
-                        isSelected 
-                          ? 'border-emerald-600 ring-2 ring-emerald-500/30 scale-105 shadow-md' 
-                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-400 hover:scale-102'
-                      }`}
-                      title={preset.label}
-                    >
-                      <img
-                        src={preset.url}
-                        alt={preset.label}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-emerald-600/30 flex items-center justify-center">
-                          <Check className="w-5 h-5 text-white stroke-[3]" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {/* Tab 2: Upload File */}
             {activeAvatarTab === 'upload' && (

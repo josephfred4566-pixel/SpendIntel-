@@ -1,11 +1,12 @@
 import { Expense, ActivityLogEntry, CompanyProfileData, AppPreferences, CategoryDefinition } from '../types';
-import { INITIAL_EXPENSES, DEFAULT_CATEGORIES } from '../data/initialExpenses';
+import { INITIAL_EXPENSES, DEFAULT_CATEGORIES, DEFAULT_DEPARTMENTS } from '../data/initialExpenses';
 
 // LocalStorage Storage Keys with Versioning for Zero-Loss Guarantee
 const STORAGE_KEYS = {
   EXPENSES: 'spendintel_corporate_expenses_v1',
   CURRENCY: 'spendintel_active_currency_v1',
   CATEGORIES: 'spendintel_smart_categories_v1',
+  DEPARTMENTS: 'spendintel_departments_v1',
   ACTIVITY_LOGS: 'spendintel_user_activity_logs_v1',
   COMPANY_PROFILE: 'spendintel_company_profile_v1',
   PREFERENCES: 'spendintel_app_preferences_v1',
@@ -141,6 +142,22 @@ export function loadCategories(): CategoryDefinition[] {
 
 export function saveCategories(categories: CategoryDefinition[]): void {
   setLocalStorageItem(STORAGE_KEYS.CATEGORIES, categories);
+}
+
+/**
+ * 3.5. DEPARTMENTS & BUDGETS PERSISTENCE
+ */
+export function loadDepartments(): { department: string; budget: number }[] {
+  const stored = getLocalStorageItem<{ department: string; budget: number }[] | null>(STORAGE_KEYS.DEPARTMENTS, null);
+  if (stored && Array.isArray(stored) && stored.length > 0) {
+    return stored;
+  }
+  setLocalStorageItem(STORAGE_KEYS.DEPARTMENTS, DEFAULT_DEPARTMENTS);
+  return DEFAULT_DEPARTMENTS;
+}
+
+export function saveDepartments(departments: { department: string; budget: number }[]): void {
+  setLocalStorageItem(STORAGE_KEYS.DEPARTMENTS, departments);
 }
 
 /**

@@ -67,47 +67,6 @@ export const XeroLogo: React.FC<LogoProps> = ({ className = 'w-12 h-12' }) => {
 };
 
 /**
- * Ramp Corporate Cards Official Brand App Icon
- * Authentic Ramp dark obsidian (#111111) with neon electric-lime (#E2FD52) folded ramp chevron
- */
-export const RampLogo: React.FC<LogoProps> = ({ className = 'w-12 h-12' }) => {
-  return (
-    <div
-      className={`relative flex items-center justify-center rounded-xl bg-[#111111] border border-slate-800 shadow-xs overflow-hidden select-none shrink-0 ${className}`}
-      title="Ramp Corporate Cards"
-      aria-label="Ramp Corporate Cards Logo"
-    >
-      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1.5">
-        {/* Dark plate background */}
-        <rect width="48" height="48" rx="10" fill="#111111" />
-        {/* Ramp signature electric chartreuse origami slash / ribbon */}
-        <path
-          d="M13 35L27.5 12H35.5L21 35H13Z"
-          fill="#E2FD52"
-        />
-        <path
-          d="M26 12L35.5 22.5L31.5 25.5L22 15L26 12Z"
-          fill="#C4F934"
-        />
-        {/* Ramp wordmark */}
-        <text
-          x="24"
-          y="43"
-          textAnchor="middle"
-          fill="#E2FD52"
-          fontFamily="system-ui, -apple-system, sans-serif"
-          fontWeight="900"
-          fontSize="7.5"
-          letterSpacing="0.1em"
-        >
-          RAMP
-        </text>
-      </svg>
-    </div>
-  );
-};
-
-/**
  * Dynamic App Logo Resolver
  */
 export const AppLogo: React.FC<{ id: string; className?: string }> = ({ id, className }) => {
@@ -116,8 +75,6 @@ export const AppLogo: React.FC<{ id: string; className?: string }> = ({ id, clas
       return <QuickBooksLogo className={className} />;
     case 'xero':
       return <XeroLogo className={className} />;
-    case 'ramp':
-      return <RampLogo className={className} />;
     default:
       return null;
   }

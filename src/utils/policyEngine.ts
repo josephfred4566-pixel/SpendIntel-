@@ -1,4 +1,5 @@
 import { Expense, PolicyViolation } from '../types';
+import { detectAnomalies } from './anomalousSpendDetector';
 
 /**
  * Automated Policy Check Engine
@@ -161,7 +162,7 @@ export function evaluatePolicyRules(expense: Expense): PolicyViolation[] {
  * If violations exist, sets status to 'Flagged' if not already Approved.
  */
 export function auditAllExpenses(expenses: Expense[]): Expense[] {
-  return expenses.map(expense => {
+  const audited = expenses.map(expense => {
     const violations = evaluatePolicyRules(expense);
     return {
       ...expense,
@@ -169,4 +170,5 @@ export function auditAllExpenses(expenses: Expense[]): Expense[] {
       status: violations.length > 0 && expense.status !== 'Approved' ? 'Flagged' : expense.status,
     };
   });
+  return detectAnomalies(audited);
 }

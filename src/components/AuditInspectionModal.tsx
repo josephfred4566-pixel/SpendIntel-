@@ -96,6 +96,46 @@ export const AuditInspectionModal: React.FC<AuditInspectionModalProps> = ({
             </div>
           </div>
 
+          {/* Pattern Risk Field */}
+          {expense.patternRisk && (
+            <div className={`p-4 rounded-xl border flex items-start space-x-3 text-xs ${
+              expense.patternRisk === 'High' 
+                ? 'bg-rose-50/50 border-rose-200 text-rose-950' 
+                : expense.patternRisk === 'Medium'
+                ? 'bg-amber-50/50 border-amber-200 text-amber-950'
+                : 'bg-emerald-50/40 border-emerald-200 text-emerald-950'
+            }`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border ${
+                expense.patternRisk === 'High' 
+                  ? 'bg-rose-100/80 text-rose-700 border-rose-200' 
+                  : expense.patternRisk === 'Medium'
+                  ? 'bg-amber-100/80 text-amber-700 border-amber-200'
+                  : 'bg-emerald-100/80 text-emerald-700 border-emerald-200'
+              }`}>
+                <AlertOctagon className="w-4 h-4 animate-pulse" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold uppercase tracking-wider text-[10px]">
+                    AI Anomalous Spend Pattern Risk:
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full font-extrabold text-[10px] ${
+                    expense.patternRisk === 'High' 
+                      ? 'bg-rose-100 text-rose-800 animate-pulse' 
+                      : expense.patternRisk === 'Medium'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {expense.patternRisk} Risk Flag
+                  </span>
+                </div>
+                <p className="font-medium text-slate-700 leading-relaxed">
+                  {expense.patternRiskExplanation || 'No historical departmental deviation detected for this expense pattern.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Notes & Justification */}
           <div>
             <span className="text-xs font-semibold text-slate-500 block mb-1">

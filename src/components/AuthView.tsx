@@ -78,7 +78,7 @@ const LEGAL_DOCUMENTS: Record<Exclude<LegalModalType, null>, LegalModalContent> 
   security: {
     title: 'Security Policy',
     badge: 'Enterprise Defense Architecture',
-    icon: <Shield className="w-5 h-5 text-blue-600" />,
+    icon: <Shield className="w-5 h-5 text-emerald-600" />,
     content: (
       <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
         <p>
@@ -104,7 +104,7 @@ const LEGAL_DOCUMENTS: Record<Exclude<LegalModalType, null>, LegalModalContent> 
   terms: {
     title: 'Terms of Service (ToS) Excerpt',
     badge: 'Master Services Agreement',
-    icon: <Scale className="w-5 h-5 text-indigo-600" />,
+    icon: <Scale className="w-5 h-5 text-emerald-600" />,
     content: (
       <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
         <p>
@@ -225,7 +225,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onNotify }) =
                 Autonomous Corporate Spend & Accounting Governance
               </h1>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Connect live corporate card feeds, automate policy audit scans, convert 160+ world currencies, and reconcile directly to QuickBooks, Xero, and Ramp.
+                Connect live corporate card feeds, automate policy audit scans, convert 160+ world currencies, and reconcile directly to QuickBooks and Xero.
               </p>
             </div>
 
@@ -242,7 +242,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onNotify }) =
               </div>
 
               <div className="flex items-start space-x-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200/80">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/80">
                   <Globe className="w-4 h-4" />
                 </div>
                 <div>
@@ -252,7 +252,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onNotify }) =
               </div>
 
               <div className="flex items-start space-x-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-200/80">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/80">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>

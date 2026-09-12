@@ -34,21 +34,6 @@ import { User, Sparkles, LogOut, Globe, UserCog, Server } from 'lucide-react';
 
 const INITIAL_INTEGRATIONS: AccountingIntegration[] = [
   {
-    id: 'termux-server',
-    name: 'Termux / Local Express Backend',
-    tagline: 'Direct REST Payload sync via syncDataToServer() to http://localhost:3000/api/v1/sync',
-    category: 'Local Backend Server',
-    status: 'connected',
-    lastSynced: 'Realtime',
-    syncInterval: 'On-Demand / Scriptable',
-    mappedLedger: 'API v1 Sync Endpoint (syncDataToServer)',
-    features: [
-      'Executes syncDataToServer() function sending userId, companyType, and window.mockTransactions',
-      'Target endpoint: POST http://localhost:3000/api/v1/sync',
-      'Exposed on global window.syncDataToServer for console or automated triggers'
-    ]
-  },
-  {
     id: 'quickbooks',
     name: 'QuickBooks Online',
     tagline: 'Intuit Enterprise Ledger & Automated Journal Entries',
@@ -76,21 +61,6 @@ const INITIAL_INTEGRATIONS: AccountingIntegration[] = [
       'Multi-currency exchange rate synchronization',
       'Bank reconciliation feed matching',
       'Automated batch payment file creation (ABA/SEPA)'
-    ]
-  },
-  {
-    id: 'ramp',
-    name: 'Ramp Corporate Cards',
-    tagline: 'Automated Corporate Card Feed & Real-time Spend Management',
-    category: 'Corporate Cards & Spend',
-    status: 'connected',
-    lastSynced: 'Just now',
-    syncInterval: 'Realtime',
-    mappedLedger: '2010 - Corporate Card Clearing Account',
-    features: [
-      'Instant card swipe webhook capture within 3 seconds',
-      'Automated receipt match via SMS and employee mobile push',
-      'Out-of-policy merchant blocking at point-of-sale'
     ]
   }
 ];
@@ -164,28 +134,33 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
   const [autoReconcile, setAutoReconcile] = useState(true);
   const [receiptUploadRequirement, setReceiptUploadRequirement] = useState(50);
   const [strictPerDiem, setStrictPerDiem] = useState(true);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const isDark = theme === 'dark';
 
   // Handle returning from OAuth flow with ?connected=platform
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const connectedPlatform = params.get('connected');
-      if (connectedPlatform) {
-        setIntegrations(prev => prev.map(item => {
-          if (item.id === connectedPlatform || item.name.toLowerCase().includes(connectedPlatform.toLowerCase())) {
-            return {
-              ...item,
-              status: 'connected',
-              lastSynced: 'Just now'
-            };
-          }
-          return item;
-        }));
-        onNotify(`Successfully connected and authenticated ${connectedPlatform.toUpperCase()}!`);
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const connectedPlatform = params.get('connected');
+        if (connectedPlatform) {
+          setIntegrations(prev => prev.map(item => {
+            if (item.id === connectedPlatform || item.name.toLowerCase().includes(connectedPlatform.toLowerCase())) {
+              return {
+                ...item,
+                status: 'connected',
+                lastSynced: 'Just now'
+              };
+            }
+            return item;
+          }));
+          onNotify(`Successfully connected and authenticated ${connectedPlatform.toUpperCase()}!`);
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      } catch (e) {
+        console.warn('URL params parsing or history state update prevented:', e);
       }
     }
   }, []);
@@ -232,23 +207,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
     const target = integrations.find(i => i.id === id);
     if (!target) return;
 
-    if (id === 'termux-server') {
-      syncDataToServer().finally(() => {
-        setSyncingId(null);
-        setIntegrations(prev => prev.map(item => {
-          if (item.id === id) {
-            return {
-              ...item,
-              lastSynced: 'Just now',
-            };
-          }
-          return item;
-        }));
-      });
-      return;
-    }
-
-    if (id === 'quickbooks' || id === 'xero' || id === 'ramp') {
+    if (id === 'quickbooks' || id === 'xero') {
       triggerAppSync(id).finally(() => {
         setSyncingId(null);
         setIntegrations(prev => prev.map(item => {
@@ -361,8 +320,34 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
 
         {/* Action Buttons & Subtab Switcher */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
-          {/* Action buttons: Sync Feeds & Export CSV */}
-          <div className="flex items-center space-x-2">
+          {/* Action buttons: Product Tour, Sign Out, Sync Feeds & Export CSV */}
+          <div className="flex flex-wrap items-center gap-2">
+            {onReplayTour && (
+              <button
+                id="settings-top-tour-btn"
+                type="button"
+                onClick={onReplayTour}
+                title="Start or replay the interactive product tour"
+                className="inline-flex items-center px-3 py-1.5 border border-emerald-300 dark:border-emerald-700/80 rounded-lg text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors shadow-2xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Product Tour</span>
+              </button>
+            )}
+
+            {onSignOut && (
+              <button
+                id="settings-top-signout-btn"
+                type="button"
+                onClick={onSignOut}
+                title="Sign out of your active SpendIntel session"
+                className="inline-flex items-center px-3 py-1.5 border border-rose-200 dark:border-rose-800/80 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900 transition-colors shadow-2xs cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-1.5 text-rose-600 dark:text-rose-400" />
+                <span>Sign Out</span>
+              </button>
+            )}
+
             {onRefresh && (
               <button
                 id="settings-sync-feeds-btn"
@@ -455,10 +440,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
                   }`}
                 >
                   {/* Top Bar Accent */}
-                  <div className={`h-1.5 w-full ${
-                    item.id === 'quickbooks' ? 'bg-emerald-500' :
-                    item.id === 'xero' ? 'bg-sky-500' : 'bg-amber-500'
-                  }`} />
+                  <div className="h-1.5 w-full bg-emerald-600 dark:bg-emerald-500" />
 
                   <div className="p-6 flex-1 flex flex-col justify-between">
                     <div>
@@ -617,7 +599,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center">
-                  {isDark ? <Moon className="w-4 h-4 mr-2 text-indigo-400" /> : <Sun className="w-4 h-4 mr-2 text-amber-500" />}
+                  {isDark ? <Moon className="w-4 h-4 mr-2 text-emerald-400" /> : <Sun className="w-4 h-4 mr-2 text-emerald-600" />}
                   Application Appearance & Color Theme
                 </label>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -663,7 +645,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
                     : 'bg-slate-900/60 border-slate-700/80 hover:border-slate-600'
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                   <Sun className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -689,7 +671,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
                     : 'bg-white border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                   <Moon className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
@@ -966,19 +948,37 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
                 </label>
 
                 {onResetAllData && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to reset all data and activity logs to default factory state?')) {
-                        onResetAllData();
-                      }
-                    }}
-                    title="Reset all ledger and log state to initial defaults"
-                    className="inline-flex items-center px-3 py-1.5 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                    Reset
-                  </button>
+                  confirmReset ? (
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onResetAllData();
+                          setConfirmReset(false);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                      >
+                        Confirm Reset?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmReset(false)}
+                        className="inline-flex items-center px-2 py-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xs font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmReset(true)}
+                      title="Reset all ledger and log state to initial defaults"
+                      className="inline-flex items-center px-3 py-1.5 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                      Reset
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -1110,7 +1110,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center">
-                  <History className="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400" />
+                  <History className="w-4 h-4 mr-2 text-emerald-600 dark:text-emerald-400" />
                   Live User Actions & Compliance Audit Trail
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1118,7 +1118,7 @@ export const SettingsIntegrations: React.FC<SettingsIntegrationsProps> = ({
                 </p>
               </div>
 
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
                 <Lock className="w-3.5 h-3.5 mr-1" /> GAAP & SOC2 Audit Trail
               </span>
             </div>

@@ -6,54 +6,8 @@ const STORAGE_KEYS = {
   REGISTERED_USERS: 'spendintel_registered_users_v1',
 };
 
-// Seed demo users for each company type tier
-export const DEMO_USERS: (AuthUser & { passwordHash: string })[] = [
-  {
-    id: 'usr-corp-001',
-    name: 'Joseph Frederick',
-    email: 'joseph@spendintel.corp',
-    role: 'Financial Controller',
-    title: 'Head of Global Financial Operations & Treasury',
-    department: 'Finance',
-    phoneNumber: '+1 (415) 555-0192',
-    bio: 'Oversees multi-entity corporate treasury consolidation, GAAP audit readiness, and SOX 404 compliance.',
-    location: 'San Francisco, CA (HQ)',
-    companyName: 'SpendIntel Global Technologies, Inc.',
-    companyType: 'Corporate',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    passwordHash: 'spendintel2026',
-  },
-  {
-    id: 'usr-ent-002',
-    name: 'Elena Vance',
-    email: 'elena.vance@vance-enterprises.com',
-    role: 'VP of Finance',
-    title: 'Vice President of Finance & Strategic Planning',
-    department: 'Executive',
-    phoneNumber: '+1 (212) 555-0144',
-    bio: 'Lead finance executive managing enterprise procurement controls, budget variances, and multi-currency ERP feeds.',
-    location: 'New York, NY',
-    companyName: 'Vance Strategic Enterprises Ltd.',
-    companyType: 'Enterprise',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    passwordHash: 'spendintel2026',
-  },
-  {
-    id: 'usr-smb-003',
-    name: 'Sarah Chen',
-    email: 'sarah@acme-design.studio',
-    role: 'Corporate Accountant',
-    title: 'Lead Financial Accountant & Operations Manager',
-    department: 'Operations',
-    phoneNumber: '+1 (206) 555-0188',
-    bio: 'Manages automated receipt capture, vendor billings, and live QuickBooks general ledger reconciliation.',
-    location: 'Seattle, WA',
-    companyName: 'Acme Design & Media Labs',
-    companyType: 'Small Business',
-    avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    passwordHash: 'spendintel2026',
-  },
-];
+// Default users list (empty by default - users must register an account)
+export const DEMO_USERS: (AuthUser & { passwordHash: string })[] = [];
 
 /**
  * Retrieve active authentication session from localStorage
@@ -135,7 +89,7 @@ export function setHasOnboarded(hasOnboarded: boolean): void {
 }
 
 /**
- * Get registered user pool (demo accounts + newly registered)
+ * Get registered user pool
  */
 function getStoredUsers(): (AuthUser & { passwordHash: string })[] {
   if (typeof window === 'undefined') return DEMO_USERS;

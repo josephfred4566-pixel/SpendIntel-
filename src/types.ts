@@ -60,6 +60,8 @@ export interface Expense {
   description?: string;
   isAiExtracted?: boolean;
   violations?: PolicyViolation[];
+  patternRisk?: 'Low' | 'Medium' | 'High';
+  patternRiskExplanation?: string;
 }
 
 export interface MonthlySpend {
@@ -93,7 +95,7 @@ export interface DepartmentSpend {
 export type ActiveNavTab = 'home' | 'settings';
 
 export interface AccountingIntegration {
-  id: 'quickbooks' | 'xero' | 'ramp' | 'termux-server' | (string & {});
+  id: 'quickbooks' | 'xero' | (string & {});
   name: string;
   tagline: string;
   category: string;

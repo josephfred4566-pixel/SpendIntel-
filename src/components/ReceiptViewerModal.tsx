@@ -51,9 +51,9 @@ export const ReceiptViewerModal: React.FC<ReceiptViewerModalProps> = ({
                 className="w-full h-full object-cover"
               />
               <a
-                href={expense.receiptUrl}
+                href={expense.receiptUrl || '#'}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold space-x-1"
               >
                 <span>Open Full Size</span>

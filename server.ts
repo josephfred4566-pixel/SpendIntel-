@@ -13,13 +13,26 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "10mb" }));
 
-// Enable CORS for cross-origin local/Termux sync requests
+// Enable CORS for cross-origin local sync requests
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
+  }
+  next();
+});
+
+// Security Guard: Hide and block direct HTTP access to secrets, database files, and server source
+app.use((req, res, next) => {
+  const forbiddenPatterns = [/^\/\.env/i, /^\/spendintel_db\.json/i, /^\/server\.ts/i, /^\/dist\/server\.cjs/i];
+  if (forbiddenPatterns.some(pattern => pattern.test(req.path))) {
+    console.warn(`[Security Guard] Blocked unauthorized request for server secret/internal file: ${req.path}`);
+    return res.status(403).json({
+      success: false,
+      error: "403 Forbidden: Direct access to server secrets and configuration files is prohibited."
+    });
   }
   next();
 });
@@ -57,44 +70,7 @@ interface DbSchema {
   userExpenses: Record<string, any[]>;
 }
 
-const DEFAULT_USERS: DbUser[] = [
-  {
-    id: "usr-corp-001",
-    name: "Joseph Frederick",
-    email: "joseph@spendintel.corp",
-    passwordHash: hashPassword("spendintel2026"),
-    role: "Financial Controller",
-    companyName: "SpendIntel Global Technologies, Inc.",
-    companyType: "Corporate",
-    title: "Head of Global Financial Operations & Treasury",
-    department: "Finance",
-    createdAt: "2026-01-01T00:00:00.000Z"
-  },
-  {
-    id: "usr-ent-002",
-    name: "Elena Vance",
-    email: "elena.vance@vance-enterprises.com",
-    passwordHash: hashPassword("spendintel2026"),
-    role: "VP of Finance",
-    companyName: "Vance Strategic Enterprises Ltd.",
-    companyType: "Enterprise",
-    title: "Vice President of Finance & Strategic Planning",
-    department: "Executive",
-    createdAt: "2026-01-01T00:00:00.000Z"
-  },
-  {
-    id: "usr-smb-003",
-    name: "Sarah Chen",
-    email: "sarah@acme-design.studio",
-    passwordHash: hashPassword("spendintel2026"),
-    role: "Corporate Accountant",
-    companyName: "Acme Design & Media Labs",
-    companyType: "Small Business",
-    title: "Lead Financial Accountant & Operations Manager",
-    department: "Operations",
-    createdAt: "2026-01-01T00:00:00.000Z"
-  }
-];
+const DEFAULT_USERS: DbUser[] = [];
 
 function readDb(): DbSchema {
   try {
@@ -234,9 +210,7 @@ app.post("/api/v1/auth/login", (req, res) => {
     const inputHash = hashPassword(password);
     const isValidPassword =
       user.passwordHash === inputHash ||
-      user.passwordHash === password ||
-      password === "spendintel2026" ||
-      password === "password";
+      user.passwordHash === password;
 
     if (!isValidPassword) {
       return res.status(401).json({ success: false, error: "Invalid email or password. Access denied." });
@@ -387,8 +361,7 @@ app.get("/api/v1/auth/:platform", (req, res) => {
 
     const authUrls: Record<string, string> = {
       quickbooks: `https://appcenter.intuit.com/connect/oauth2?client_id=${qboClientId}&response_type=code&scope=com.intuit.quickbooks.accounting&redirect_uri=${encodeURIComponent(qboRedirectUri)}&state=quickbooks`,
-      xero: `https://login.xero.com/identity/connect/authorize?response_type=code&client_id=${xeroClientId}&redirect_uri=${encodeURIComponent(xeroRedirectUri)}&scope=openid%20profile%20email%20accounting.transactions&state=xero`,
-      ramp: `https://app.ramp.com/v1/authorize?client_id=ramp_spend_intel&response_type=code&redirect_uri=${encodeURIComponent("http://localhost:3000/api/v1/callback/ramp")}&state=ramp`
+      xero: `https://login.xero.com/identity/connect/authorize?response_type=code&client_id=${xeroClientId}&redirect_uri=${encodeURIComponent(xeroRedirectUri)}&scope=openid%20profile%20email%20accounting.transactions&state=xero`
     };
 
     const authorizationUrl = authUrls[platform] || `https://oauth.example.com/authorize?client_id=spend_intel&platform=${platform}&scope=read_write`;
@@ -408,7 +381,7 @@ app.get("/api/v1/auth/:platform", (req, res) => {
   }
 });
 
-// OAuth Callback Handlers for QuickBooks, Xero, and Ramp
+// OAuth Callback Handlers for QuickBooks and Xero
 app.get(["/api/v1/callback/quickbooks", "/api/v1/callback/xero", "/api/v1/callback/:platform"], (req, res) => {
   const platform = req.params.platform || (req.path.includes("quickbooks") ? "quickbooks" : "xero");
   const code = req.query.code || "mock_oauth_auth_code";

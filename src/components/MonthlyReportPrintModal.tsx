@@ -163,7 +163,11 @@ export const MonthlyReportPrintModal: React.FC<MonthlyReportPrintModalProps> = (
   }, [selectedMonth, reportExpenses.length]);
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (err) {
+      console.warn('Print command prevented in framed context:', err);
+    }
   };
 
   if (!isOpen) return null;

@@ -219,7 +219,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                Smart Categorization UI
+                Categorization
               </h2>
               <span className="text-[11px] text-slate-500">
                 Total Allocated: {formatMoney(totalSpend, currencyCode)}
